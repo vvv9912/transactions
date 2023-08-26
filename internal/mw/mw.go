@@ -117,7 +117,6 @@ func (M *MW) MwAdd(next echo.HandlerFunc) echo.HandlerFunc {
 			}
 
 			topic := StateAdddb
-
 			M.P.Produce(&kafka.Message{
 				TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
 				Value:          []byte(msg),
