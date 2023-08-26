@@ -10,7 +10,7 @@ type Producer struct {
 }
 
 func NewProducer() Producer {
-	kfk, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": "localhost:9092"})
+	kfk, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": "localhost"})
 
 	if err != nil {
 		logrus.WithFields(

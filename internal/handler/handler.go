@@ -32,13 +32,26 @@ func HandlerAdd(ctx echo.Context) error {
 	_ = idTransaction
 	_ = id
 	_ = arr
-	err := ctx.String(http.StatusOK, "test add")
+	s := fmt.Sprintf("id: %s\naccount: %s\nnum. transaction: %s", id, arr, idTransaction.String())
+	err := ctx.String(http.StatusOK, s)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 func HandlerSub(ctx echo.Context) error {
+	//Вывод средств , возврат 200 и ссылка на Get запрос
+	//idTransaction := ctx.Get("id_transaction").(uuid.UUID)
+	idTransaction := uuid.New()
+	s := fmt.Sprintf("%d\n%s/id?%s", http.StatusOK, ctx.Request().Host, idTransaction.String())
+	err := ctx.String(http.StatusOK, s)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func HandlerID(ctx echo.Context) error {
+	//
 	err := ctx.String(http.StatusOK, "test sub")
 	if err != nil {
 		return err

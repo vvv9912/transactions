@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"github.com/patrickmn/go-cache"
 	"github.com/sirupsen/logrus"
+	"transaction/internal/kafka"
 	"transaction/internal/server"
 	"transaction/internal/storage"
 
@@ -32,7 +34,11 @@ func main() {
 	defer cancel()
 	_ = db
 	_ = ctx
-	s := server.NewServer()
-	s.ServerStart(config.Get().HTTPServer)
+	dbuser := storage.NewUsersStorage(db)
+	cache := cache.New(cache.DefaultExpiration, 0)
+	consum := kafka.NewConsumer(cache)
+	defer consum.C.Close()
+	s := server.NewServer(dbuser, consum, cache)
+	s.ServerStart(ctx, config.Get().HTTPServer)
 
 }

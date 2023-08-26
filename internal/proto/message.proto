@@ -1,0 +1,8 @@
+syntax = "proto3";
+//   protoc --go_out=. --go-grpc_out=. --go-grpc_opt=Mpaths=source_relative --go_opt=paths=source_relative  ./internal/proto/*.proto
+option go_package = "/proto";
+message Message {
+  string numtrans = 1;
+  int64 id = 2;
+  double account = 3;
+}
