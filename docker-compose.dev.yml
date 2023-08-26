@@ -1,0 +1,20 @@
+version: '3'
+
+services:
+
+  db:
+    image: postgres:15
+    restart: always
+    container_name: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: test_transcaction
+      PGDATA: /var/lib/postgresql/data/
+    ports:
+      - "5432:5432"
+    volumes:
+      - db:/var/lib/postgresql/data/
+
+volumes:
+  db:
