@@ -8,7 +8,6 @@ import (
 )
 
 func HandlerStatus(ctx echo.Context) error {
-	//err := ctx.String(http.StatusOK, "test 200")
 	status := ctx.Get("status").(int)
 	err := ctx.String(http.StatusOK, fmt.Sprintf("Status %d", status))
 	if err != nil {

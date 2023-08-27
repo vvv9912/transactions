@@ -14,7 +14,6 @@ func NewTransStorage(db *sqlx.DB) *PostgresTransaction {
 	return &PostgresTransaction{db: db}
 }
 
-// Добавить транзакцию
 func (db *PostgresTransaction) AddTransaction(ctx context.Context, numTransaction string, userid int64, status int, timestamp time.Time) (int64, error) {
 	conn, err := db.db.Connx(ctx)
 	if err != nil {
@@ -22,7 +21,6 @@ func (db *PostgresTransaction) AddTransaction(ctx context.Context, numTransactio
 	}
 	defer conn.Close()
 
-	//
 	var id int64
 
 	row := conn.QueryRowxContext(

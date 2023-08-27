@@ -89,11 +89,7 @@ func (C Consumer) ConsumerStart(ctx context.Context) error {
 						logrus.WithFields(logrus.Fields{"package": "Consumer", "func": "ConsumerStart", "method": "AddTransaction"}).Fatalln(err)
 						return
 					}
-					//addBD
-					//		a := 12
-					//		b, _ := C.cache.Get(message.Numtrans)
-					//		C.cache.Set(message.Numtrans, a, cache.DefaultExpiration)
-					//		c, _ := C.cache.Get(message.Numtrans)
+
 					switch *msg.TopicPartition.Topic {
 					case StateAdddb:
 
@@ -157,7 +153,7 @@ func (C Consumer) ConsumerStart(ctx context.Context) error {
 									return
 								}
 							} else {
-								//добавить в бд транзакций
+
 								logrus.Infof("account<message.Account")
 								C.cache.Set(message.Numtrans, model.Caches{ID: id, NumberTransaction: message.Numtrans, Status: 3}, cache.DefaultExpiration) //транзакция неуспешна
 								err = C.TransactionSStorage.SetTransactionById(ctx, idTransaction, 3)

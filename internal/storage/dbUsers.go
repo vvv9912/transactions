@@ -18,7 +18,6 @@ func NewUsersStorage(db *sqlx.DB) *PostgresUsers {
 	return &PostgresUsers{db: db}
 }
 
-// Добавить пользователя
 func (db *PostgresUsers) AddUsers(ctx context.Context, Users model.Users) (int64, error) {
 	conn, err := db.db.Connx(ctx)
 	if err != nil {
@@ -44,18 +43,6 @@ func (db *PostgresUsers) AddUsers(ctx context.Context, Users model.Users) (int64
 	return id, nil
 }
 
-// // Получение баланса
-// func (db *PostgresUsers) Account(ctx context.Context) (model.Users, error) {
-//
-// }
-//
-// func (db *PostgresUsers) AddAccountById(ctx context.Context, Users model.Users) error {
-//
-// }
-// func (db *PostgresUsers) SubAccountById(ctx context.Context, Users model.Users) error {
-//
-// }
-// Существует ли пользователь
 func (db *PostgresUsers) CheckId(ctx context.Context, idUser int64) (int64, error) {
 	db.Lock()
 	defer db.Unlock()
@@ -88,7 +75,6 @@ func (db *PostgresUsers) GetAccount(ctx context.Context, idUser int64) (float64,
 	return account, err
 }
 
-// Добавить баланс по акку
 func (db *PostgresUsers) AddAccountById(ctx context.Context, id int64, account float64) error {
 	db.Lock()
 	defer db.Unlock()

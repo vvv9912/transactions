@@ -110,14 +110,12 @@ func (M *MW) MwAdd(next echo.HandlerFunc) echo.HandlerFunc {
 		msgCacheNew.Status = 0
 		msgCacheNew.ID = int64(ID)
 
-		//map ->транзакция -> структура
-		//Добавляем кэш
 		err = M.Cache.Add(idTransaction.String(), msgCacheNew, cache.DefaultExpiration)
 		if err != nil {
 			logrus.WithFields(logrus.Fields{"func": "MwAdd"}).Fatalf("Add to cache: %v", err)
 			return err
 		}
-		//начало консюмера
+
 		go func() {
 
 			msg, err := proto2.Marshal(&message)
@@ -142,7 +140,6 @@ func (M *MW) MwAdd(next echo.HandlerFunc) echo.HandlerFunc {
 			log.Print("send ")
 		}()
 
-		//M.Cache.Add()
 		return nil
 	}
 }
@@ -153,7 +150,7 @@ func (M *MW) MwSub(next echo.HandlerFunc) echo.HandlerFunc {
 		if err != nil {
 			return err
 		}
-		//Тут реализация передачи в кафку
+
 		ID, err := strconv.Atoi(ctx.Request().Header.Get("id"))
 		log.Print("прошло ")
 		if err != nil {
@@ -176,14 +173,12 @@ func (M *MW) MwSub(next echo.HandlerFunc) echo.HandlerFunc {
 		msgCacheNew.Status = 0
 		msgCacheNew.ID = int64(ID)
 
-		//map ->транзакция -> структура
-		//Добавляем кэш
 		err = M.Cache.Add(idTransaction.String(), msgCacheNew, cache.DefaultExpiration)
 		if err != nil {
 			logrus.WithFields(logrus.Fields{"func": "MwSub"}).Fatalf("Sub to cache: %v", err)
 			return err
 		}
-		//начало консюмера
+
 		go func() {
 
 			msg, err := proto2.Marshal(&message)
