@@ -10,25 +10,18 @@ import (
 	"transaction/internal/mw"
 )
 
-type Consumer interface {
-	ConsumerStart(ctx context.Context) error
-}
-type Cacher interface {
-}
 type Server struct {
-	Cer   Consumer
-	echo  *echo.Echo
-	Cache *cache.Cache
+	UsersStorage kafka.UsersStorager
+	KafkaConsume mw.KafkaConsumer
+	echo         *echo.Echo
+	Cache        *cache.Cache
 }
 
-func NewServer(Dbusers mw.UsersStorage, Con Consumer, Cache *cache.Cache) *Server {
+func NewServer(Dbusers kafka.UsersStorager, Cache *cache.Cache, KafkaProduce mw.KafkaProducer, KafkaConsumer mw.KafkaConsumer) *Server {
 
-	s := &Server{}
+	s := &Server{KafkaConsume: KafkaConsumer, Cache: Cache}
 	s.echo = echo.New()
-	m := mw.MW{Dbusers: Dbusers}
-	m.Cache = Cache
-	s.Cache = Cache
-	s.Cer = Con
+	m := mw.MW{Dbusers: Dbusers, KafkaProduce: KafkaProduce, KafkaConsume: KafkaConsumer, Cache: Cache}
 
 	//Создам вне сервера а передам сюда только интерфейс
 
@@ -40,18 +33,19 @@ func NewServer(Dbusers mw.UsersStorage, Con Consumer, Cache *cache.Cache) *Serve
 	//ctx := context.TODO()
 	//consum.ConsumerStart(ctx)
 	//defer consum.C.Close() //?todo
-	p := kafka.NewProducer()
+	//p := kafka.NewProducer()
 	//defer p.P.Close() //todo
-	m.P = p.P
+	//m.P = p.P
 	return s
 }
 func (s *Server) ServerStart(ctx context.Context, addr string) error {
-	var (
-	//h Handler
-	)
-	s.Cer.ConsumerStart(ctx)
 
-	err := s.echo.Start(addr)
+	err := s.KafkaConsume.ConsumerStart(ctx)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{"func": "ServerStart"}).Fatalf("Consumer start error: %v", err)
+	}
+
+	err = s.echo.Start(addr)
 	if err != nil {
 		logrus.WithFields(logrus.Fields{"func": "ServerStart"}).Fatalf("Server star error: %v", err)
 	}

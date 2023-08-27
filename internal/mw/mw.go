@@ -2,7 +2,6 @@ package mw
 
 import (
 	"context"
-	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	proto2 "github.com/golang/protobuf/proto"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
@@ -11,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"transaction/internal/kafka"
 	"transaction/internal/model"
 	"transaction/internal/proto"
 )
@@ -20,18 +20,19 @@ const (
 	StateSubdb        = "Sub"
 )
 
-type UsersStorage interface {
-	AddUsers(ctx context.Context, Users model.Users) (int64, error)
+type KafkaProducer interface {
+	Produce(topic string, Value []byte, Key []byte) error
+	Flush(timeoutMs int) int
+}
+type KafkaConsumer interface {
+	ConsumerStart(ctx context.Context) error
 }
 
-//	type Proder interface {
-//		kafka.Producer
-//	}
 type MW struct {
-	Dbusers UsersStorage
-	//Produs  Proder
-	P     *kafka.Producer
-	Cache *cache.Cache
+	Dbusers      kafka.UsersStorager
+	KafkaProduce KafkaProducer
+	KafkaConsume KafkaConsumer
+	Cache        *cache.Cache
 }
 
 func (M *MW) Mw(next echo.HandlerFunc) echo.HandlerFunc {
@@ -55,27 +56,7 @@ func (M *MW) Mw(next echo.HandlerFunc) echo.HandlerFunc {
 }
 func (M *MW) MwAdd(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(ctx echo.Context) error {
-
-		/*
-			if len(ctx.Request().Header.Get("id")) == 0 {
-				return echo.NewHTTPError(http.StatusBadRequest, "Uncorrected id")
-			}
-			if len(ctx.Request().Header.Get("account")) == 0 {
-				return echo.NewHTTPError(http.StatusBadRequest, "Uncorrected account")
-			}
-			idTransaction := uuid.New()
-
-			ctx.Set("id_transaction", idTransaction)
-			err := next(ctx)
-			if err != nil {
-				return err
-			}
-			//
-		*/
 		next(ctx)
-		//Тут реализация передачи в кафку
-		log.Print("Общий мв в адд повтор ")
-		//
 
 		ID, err := strconv.Atoi(ctx.Request().Header.Get("id"))
 		log.Print("прошло ")
@@ -88,20 +69,24 @@ func (M *MW) MwAdd(next echo.HandlerFunc) echo.HandlerFunc {
 			logrus.WithFields(logrus.Fields{"func": "MwAdd"}).Fatalf("Convert account string to float: %v", err)
 			return err
 		}
-		id_transaction := ctx.Get("id_transaction").(uuid.UUID)
+		idTransaction := ctx.Get("id_transaction").(uuid.UUID)
 		var message proto.Message
-		message.Numtrans = id_transaction.String()
+		message.Numtrans = idTransaction.String()
 		message.Id = int64(ID)
 		message.Account = account
 
-		msgCacheNew := make([]model.Caches, 1)
-		msgCacheNew[0].NumberTransaction = id_transaction.String()
-		msgCacheNew[0].Status = 0
-		msgCacheNew[0].ID = int64(ID)
+		msgCacheNew := model.Caches{}
+		msgCacheNew.NumberTransaction = idTransaction.String()
+		msgCacheNew.Status = 0
+		msgCacheNew.ID = int64(ID)
 
 		//map ->транзакция -> структура
 		//Добавляем кэш
-		M.Cache.Add(id_transaction.String(), msgCacheNew, cache.DefaultExpiration)
+		err = M.Cache.Add(idTransaction.String(), msgCacheNew, cache.DefaultExpiration)
+		if err != nil {
+			logrus.WithFields(logrus.Fields{"func": "MwAdd"}).Fatalf("Add to cache: %v", err)
+			return err
+		}
 		//начало консюмера
 		go func() {
 
@@ -117,27 +102,81 @@ func (M *MW) MwAdd(next echo.HandlerFunc) echo.HandlerFunc {
 			}
 
 			topic := StateAdddb
-			M.P.Produce(&kafka.Message{
-				TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
-				Value:          []byte(msg),
-				Key:            []byte(id_transaction.String()),
-			}, nil)
-			M.P.Flush(1 * 1000)
+			err = M.KafkaProduce.Produce(topic, []byte(msg), []byte(idTransaction.String()))
+			if err != nil {
+				logrus.WithFields(logrus.Fields{"func": "MwAdd"}).Fatalf("Transport to produce: %v", err)
+				return
+			}
+
+			M.KafkaProduce.Flush(1 * 1000)
 			log.Print("send ")
 		}()
+
 		//M.Cache.Add()
 		return nil
 	}
 }
 func (M *MW) MwSub(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(ctx echo.Context) error {
-		log.Print("Executing middlewareOne Sub")
+
 		err := next(ctx)
 		if err != nil {
 			return err
 		}
 		//Тут реализация передачи в кафку
-		log.Print("Executing middlewareOne again Sub")
+		ID, err := strconv.Atoi(ctx.Request().Header.Get("id"))
+		log.Print("прошло ")
+		if err != nil {
+			logrus.WithFields(logrus.Fields{"func": "MwSub"}).Fatalf("Convert ID string to int: %v", err)
+			return err
+		}
+		account, err := strconv.ParseFloat(ctx.Request().Header.Get("account"), 64)
+		if err != nil {
+			logrus.WithFields(logrus.Fields{"func": "MwSub"}).Fatalf("Convert account string to float: %v", err)
+			return err
+		}
+		idTransaction := ctx.Get("id_transaction").(uuid.UUID)
+		var message proto.Message
+		message.Numtrans = idTransaction.String()
+		message.Id = int64(ID)
+		message.Account = account
+
+		msgCacheNew := model.Caches{}
+		msgCacheNew.NumberTransaction = idTransaction.String()
+		msgCacheNew.Status = 0
+		msgCacheNew.ID = int64(ID)
+
+		//map ->транзакция -> структура
+		//Добавляем кэш
+		err = M.Cache.Add(idTransaction.String(), msgCacheNew, cache.DefaultExpiration)
+		if err != nil {
+			logrus.WithFields(logrus.Fields{"func": "MwSub"}).Fatalf("Sub to cache: %v", err)
+			return err
+		}
+		//начало консюмера
+		go func() {
+
+			msg, err := proto2.Marshal(&message)
+			if err != nil {
+				logrus.WithFields(
+					logrus.Fields{
+						"package": "server",
+						"func":    "SubHttpAnswer",
+						"method":  "Marshal",
+					}).Warningln(err)
+				return
+			}
+
+			topic := StateSubdb
+			err = M.KafkaProduce.Produce(topic, []byte(msg), []byte(idTransaction.String()))
+			if err != nil {
+				logrus.WithFields(logrus.Fields{"func": "MwSub"}).Fatalf("Transport to produce: %v", err)
+				return
+			}
+
+			M.KafkaProduce.Flush(1 * 1000)
+			log.Print("send ")
+		}()
 		return nil
 
 	}

@@ -2,7 +2,7 @@
 -- +goose StatementBegin
 CREATE TABLE transaction (
   id serial primary key,
-  num_transaction text NOT NULL,
+  num_transaction uuid NOT NULL,
   user_id int NOT NULL,
   CREATED_AT timestamp NOT NULL DEFAULT NOW()
 

@@ -24,21 +24,23 @@ func main() {
 		return
 	}
 	defer db.Close()
+
 	var (
 		usersStorage = storage.NewUsersStorage(db) //подкл бд
+		cache        = cache.New(cache.DefaultExpiration, 0)
+		consumer     = kafka.NewConsumer(cache, usersStorage)
+		producer     = kafka.NewProducer()
 	)
-	_ = usersStorage
+
+	defer consumer.C.Close()
+	defer producer.P.Close()
+
 	logrus.Infof("database_dsn: %v", config.Get().DatabaseDSN)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
-	_ = db
-	_ = ctx
-	dbuser := storage.NewUsersStorage(db)
-	cache := cache.New(cache.DefaultExpiration, 0)
-	consum := kafka.NewConsumer(cache)
-	defer consum.C.Close()
-	s := server.NewServer(dbuser, consum, cache)
+
+	s := server.NewServer(usersStorage, cache, producer, consumer)
 	s.ServerStart(ctx, config.Get().HTTPServer)
 
 }
