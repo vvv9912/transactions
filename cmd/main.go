@@ -26,10 +26,11 @@ func main() {
 	defer db.Close()
 
 	var (
-		usersStorage = storage.NewUsersStorage(db) //подкл бд
-		cache        = cache.New(cache.DefaultExpiration, 0)
-		consumer     = kafka.NewConsumer(cache, usersStorage)
-		producer     = kafka.NewProducer()
+		usersStorage       = storage.NewUsersStorage(db) //подкл бд
+		transactionStorang = storage.NewTransStorage(db)
+		cache              = cache.New(cache.DefaultExpiration, 0)
+		consumer           = kafka.NewConsumer(cache, usersStorage, transactionStorang)
+		producer           = kafka.NewProducer()
 	)
 
 	defer consumer.C.Close()
@@ -40,7 +41,7 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
-	s := server.NewServer(usersStorage, cache, producer, consumer)
+	s := server.NewServer(usersStorage, transactionStorang, cache, producer, consumer)
 	s.ServerStart(ctx, config.Get().HTTPServer)
 
 }

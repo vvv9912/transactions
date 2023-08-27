@@ -3,11 +3,15 @@ package storage
 import (
 	"context"
 	"github.com/jmoiron/sqlx"
+	"log"
+	"sync"
+	"time"
 	"transaction/internal/model"
 )
 
 type PostgresUsers struct {
 	db *sqlx.DB
+	sync.Mutex
 }
 
 func NewUsersStorage(db *sqlx.DB) *PostgresUsers {
@@ -53,6 +57,11 @@ func (db *PostgresUsers) AddUsers(ctx context.Context, Users model.Users) (int64
 // }
 // Существует ли пользователь
 func (db *PostgresUsers) CheckId(ctx context.Context, idUser int64) (int64, error) {
+	db.Lock()
+	defer db.Unlock()
+	log.Print("сработал таймер")
+	time.Sleep(10 * time.Second)
+	defer log.Print("сработал мютекс,таймер офф")
 	conn, err := db.db.Connx(ctx)
 	if err != nil {
 		return 0, err
@@ -65,6 +74,8 @@ func (db *PostgresUsers) CheckId(ctx context.Context, idUser int64) (int64, erro
 	return id, err
 }
 func (db *PostgresUsers) GetAccount(ctx context.Context, idUser int64) (float64, error) {
+	db.Lock()
+	defer db.Unlock()
 	conn, err := db.db.Connx(ctx)
 	if err != nil {
 		return 0, err
@@ -79,6 +90,8 @@ func (db *PostgresUsers) GetAccount(ctx context.Context, idUser int64) (float64,
 
 // Добавить баланс по акку
 func (db *PostgresUsers) AddAccountById(ctx context.Context, id int64, account float64) error {
+	db.Lock()
+	defer db.Unlock()
 	conn, err := db.db.Connx(ctx)
 	if err != nil {
 		return err
@@ -88,6 +101,8 @@ func (db *PostgresUsers) AddAccountById(ctx context.Context, id int64, account f
 	return err
 }
 func (db *PostgresUsers) SetAccountById(ctx context.Context, id int64, account float64) error {
+	db.Lock()
+	defer db.Unlock()
 	conn, err := db.db.Connx(ctx)
 	if err != nil {
 		return err

@@ -17,18 +17,17 @@ type Server struct {
 	Cache        *cache.Cache
 }
 
-func NewServer(Dbusers kafka.UsersStorager, Cache *cache.Cache, KafkaProduce mw.KafkaProducer, KafkaConsumer mw.KafkaConsumer) *Server {
+func NewServer(Dbusers kafka.UsersStorager, DbTransaction mw.TransactionStorager, Cache *cache.Cache, KafkaProduce mw.KafkaProducer, KafkaConsumer mw.KafkaConsumer) *Server {
 
 	s := &Server{KafkaConsume: KafkaConsumer, Cache: Cache}
 	s.echo = echo.New()
-	m := mw.MW{Dbusers: Dbusers, KafkaProduce: KafkaProduce, KafkaConsume: KafkaConsumer, Cache: Cache}
+	m := mw.MW{Dbusers: Dbusers, KafkaProduce: KafkaProduce, KafkaConsume: KafkaConsumer, Cache: Cache, DbTrans: DbTransaction}
 
 	//Создам вне сервера а передам сюда только интерфейс
 
 	s.echo.POST("/add", handler.HandlerAdd, m.Mw, m.MwAdd) //Общий MW с SUB и внутри еще MW с кафкой и прочим
 	s.echo.POST("/sub", handler.HandlerSub, m.Mw, m.MwSub)
-	s.echo.GET("/id", handler.HandlerID)
-	s.echo.POST("/status", handler.HandlerStatus)
+	s.echo.GET("/status", handler.HandlerStatus, m.MwStatus)
 	// Создам Produce и Consumer
 	//ctx := context.TODO()
 	//consum.ConsumerStart(ctx)

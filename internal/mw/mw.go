@@ -20,6 +20,9 @@ const (
 	StateSubdb        = "Sub"
 )
 
+type TransactionStorager interface {
+	GetStatus(ctx context.Context, numTransaction string) (int, error)
+}
 type KafkaProducer interface {
 	Produce(topic string, Value []byte, Key []byte) error
 	Flush(timeoutMs int) int
@@ -30,11 +33,38 @@ type KafkaConsumer interface {
 
 type MW struct {
 	Dbusers      kafka.UsersStorager
+	DbTrans      TransactionStorager
 	KafkaProduce KafkaProducer
 	KafkaConsume KafkaConsumer
 	Cache        *cache.Cache
 }
 
+func (M *MW) MwStatus(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(ctx echo.Context) error {
+		id := ctx.QueryParam("id")
+		if id == "" {
+			return echo.NewHTTPError(http.StatusBadRequest, "Uncorrected id")
+		}
+		cach, ok := M.Cache.Get(id)
+		var statusTrans int
+		if !ok {
+			statusTrans1, err := M.DbTrans.GetStatus(context.TODO(), id)
+			if err != nil {
+				return echo.NewHTTPError(http.StatusBadRequest, "Uncorrected id")
+			}
+			statusTrans = statusTrans1
+		} else {
+			msg := cach.(model.Caches)
+			statusTrans = int(msg.Status)
+		}
+		ctx.Set("status", statusTrans)
+		err := next(ctx)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+}
 func (M *MW) Mw(next echo.HandlerFunc) echo.HandlerFunc {
 
 	return func(ctx echo.Context) error {
