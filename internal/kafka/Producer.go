@@ -6,7 +6,8 @@ import (
 )
 
 type Producer struct {
-	P *kafka.Producer
+	P     *kafka.Producer
+	Topic string
 }
 
 func NewProducer() *Producer {
@@ -23,9 +24,10 @@ func NewProducer() *Producer {
 	}
 	return &Producer{P: kfk}
 }
-func (p *Producer) Produce(topic string, Value []byte, Key []byte) error {
+
+func (p *Producer) Produce(Value []byte, Key []byte) error {
 	return p.P.Produce(&kafka.Message{
-		TopicPartition: kafka.TopicPartition{Topic: &topic,
+		TopicPartition: kafka.TopicPartition{Topic: &p.Topic,
 			Partition: kafka.PartitionAny},
 		Value: Value,
 		Key:   Key,
@@ -33,4 +35,7 @@ func (p *Producer) Produce(topic string, Value []byte, Key []byte) error {
 }
 func (p *Producer) Flush(timeoutMs int) int {
 	return p.P.Flush(timeoutMs)
+}
+func (p *Producer) Close() int {
+	return p.Close()
 }

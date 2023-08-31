@@ -17,11 +17,11 @@ type Server struct {
 	Cache        *cache.Cache
 }
 
-func NewServer(Dbusers kafka.UsersStorager, DbTransaction mw.TransactionStorager, Cache *cache.Cache, KafkaProduce mw.KafkaProducer, KafkaConsumer mw.KafkaConsumer) *Server {
+func NewServer(Dbusers kafka.UsersStorager, DbTransaction mw.TransactionStorager, Cache *cache.Cache, KafkaConsumer mw.KafkaConsumer) *Server {
 
 	s := &Server{KafkaConsume: KafkaConsumer, Cache: Cache}
 	s.echo = echo.New()
-	m := mw.MW{Dbusers: Dbusers, KafkaProduce: KafkaProduce, KafkaConsume: KafkaConsumer, Cache: Cache, DbTrans: DbTransaction}
+	m := mw.MW{Dbusers: Dbusers, KafkaConsume: KafkaConsumer, Cache: Cache, DbTrans: DbTransaction}
 
 	s.echo.POST("/add", handler.HandlerAdd, m.Mw, m.MwAdd) //Общий MW с SUB и внутри еще MW с кафкой и прочим
 	s.echo.POST("/sub", handler.HandlerSub, m.Mw, m.MwSub)

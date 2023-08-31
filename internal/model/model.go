@@ -12,6 +12,7 @@ type Transactions struct {
 	NumberTransaction string
 	UserID            int64
 	CreatedAt         time.Time
+	Status            int
 }
 type Caches struct {
 	ID                int64

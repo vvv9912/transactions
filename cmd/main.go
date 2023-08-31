@@ -5,6 +5,7 @@ import (
 	"github.com/patrickmn/go-cache"
 	"github.com/sirupsen/logrus"
 	"transaction/internal/kafka"
+	"transaction/internal/notifier"
 	"transaction/internal/server"
 	"transaction/internal/storage"
 
@@ -41,7 +42,10 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
-	s := server.NewServer(usersStorage, transactionStorang, cache, producer, consumer)
+	n := notifier.NewNotifier(transactionStorang)
+	n.StartNotifyCron(ctx)
+
+	s := server.NewServer(usersStorage, transactionStorang, cache, consumer)
 	s.ServerStart(ctx, config.Get().HTTPServer)
 
 }

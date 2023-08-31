@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/jmoiron/sqlx"
 	"time"
+	"transaction/internal/model"
 )
 
 type PostgresTransaction struct {
@@ -61,4 +62,20 @@ func (db *PostgresTransaction) GetStatus(ctx context.Context, numTransaction str
 		return 0, err
 	}
 	return status, err
+}
+func (db *PostgresTransaction) GetTransByStatus(ctx context.Context, status int) ([]model.Transactions, error) {
+
+	conn, err := db.db.Connx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+	var trans []model.Transactions
+	if err := conn.GetContext(ctx, &trans, `SELECT (id,num_transaction,user_id,status,CREATED_AT) FROM transaction WHERE status= $1`, status); err != nil {
+		return nil, err
+	}
+	return trans, err
+}
+func (db *PostgresTransaction) GetNotifyTrans(ctx context.Context) ([]model.Transactions, error) {
+	return db.GetTransByStatus(ctx, 0)
 }
