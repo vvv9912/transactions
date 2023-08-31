@@ -39,7 +39,7 @@ func NewNotifier(DbTrans TransactionStorager) *notifier {
 
 }
 func (n *notifier) NotifyPending(ctx context.Context) error {
-	//тут считываем из бд и отправляем
+	//тут считываем из бд и отправляем1
 	trans, err := n.DbTrans.GetNotifyTrans(ctx)
 	if err != nil {
 		logrus.WithFields(
